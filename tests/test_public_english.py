@@ -1,6 +1,6 @@
 """Language guard.
 
-1. Every public file (anything not excluded by .gitignore) is English: no CJK characters.
+1. Every public file (anything not listed in .gitignore or .private-paths) is English: no CJK characters.
 2. When a locale file exists, every message key used in the code has a translation, and the
    table has no keys that the code no longer uses.
 """
@@ -20,8 +20,14 @@ ALWAYS_SKIP = ("assets/", ".git/", ".pytest_cache/")
 
 
 def ignore_patterns():
+    """.gitignore + .private-paths (the private core list, shared by the public and private repositories)."""
     pats = []
-    for line in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines():
+    lines = []
+    for name in (".gitignore", ".private-paths"):
+        f = ROOT / name
+        if f.exists():
+            lines += f.read_text(encoding="utf-8").splitlines()
+    for line in lines:
         line = line.strip()
         if line and not line.startswith("#"):
             pats.append(line)
@@ -124,3 +130,13 @@ def test_locale_placeholders_match(path):
             if en == "Curves flagged by the analysis core.":   # the translation intentionally carries more detail
                 continue
             assert sorted(set(re.findall(rx, en))) == sorted(set(re.findall(rx, tr))), (section, en, tr)
+
+
+def test_private_paths_are_gitignored_in_public_repo():
+    """In the public repository every private path must also be in .gitignore."""
+    gi = (ROOT / ".gitignore").read_text(encoding="utf-8")
+    if "PRIVATE repository" in gi:
+        pytest.skip("private repository: private paths are tracked on purpose")
+    priv = [l.strip() for l in (ROOT / ".private-paths").read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")]
+    listed = {l.strip() for l in gi.splitlines()}
+    assert not [p for p in priv if p not in listed], "add these private paths to .gitignore"
