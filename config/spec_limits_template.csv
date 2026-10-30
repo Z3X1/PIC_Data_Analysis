@@ -1,0 +1,9 @@
+Parameter,LSL,USL,Unit,Target
+# Fill in the test-program limits. Exact names or a regex wrapped in /.../ ; exact rows win over regex rows.
+# Copy this file into the data folder as spec_limits.csv (picked up automatically) or pass --spec.
+/[12](st|nd)PDIdark_CH\d/,,,nA,
+/[12](st|nd)PDVbr_CH\d/,,,V,
+/Heater\d/,,,Ω,
+/IL_.*_CH\d/,,,dB,
+/MZMdcER_CH\d/,,,dB,
+/HeaterEff_CH\d/,,,,

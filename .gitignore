@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+PIC_Report/
+pic_names.csv
+# 原始測試資料與 TestSpec 不進版控
+*.xls
+*.xlsx
+data/
+
+# 測試 / 範例產物
+demo_data/
+.pytest_cache/
+
+# ── 私有核心：分析邏輯與知識庫，只留在本機，不推上 GitHub ──
+pic_analyzer/analysis/
+pic_analyzer/findings/
+pic_analyzer/domain/root_causes.py
+pic_analyzer/domain/families.py
+pic_analyzer/report/web/js/views/method.js
+docs/private/
+pic_analyzer/report/web/js/core/50_charts_findings.js
+pic_analyzer/report/web/js/views/paircorr.js
+tests/test_end_to_end.py
