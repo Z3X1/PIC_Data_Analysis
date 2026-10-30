@@ -13,36 +13,36 @@ RENDER.params = () => {
     r.cpk = t.all.cpk; r.mg = t.all.margin_pct; r.nfail = t.all.n_fail;
     return r;
   });
-  const cols = [{ k: "p", l: "參數", f: r => `<b>${esc(r.p)}</b>${r.log ? ' <span class="dim">log</span>' : ""}` }, { k: "fam", l: "Family" }, { k: "unit", l: "單位" }, { k: "spec", l: "Spec" },
-    { k: "cpk", l: "Cpk<br>最差", n: 1, f: r => fmt(r.cpk, 3), cls: r => r.cpk === null || r.cpk === undefined ? "dim" : r.cpk < 1 ? "hot" : r.cpk < 1.33 ? "warm" : "" },
-    { k: "mg", l: "最差讀值<br>距 limit", n: 1, f: r => r.mg === null || r.mg === undefined ? "–" : r.mg.toFixed(1) + " %", cls: r => r.mg !== null && r.mg !== undefined && r.mg < 5 ? "warm" : "" },
-    { k: "nfail", l: "超出<br>spec", n: 1, cls: r => r.nfail ? "hot" : "dim" }]
+  const cols = [{ k: "p", l: T("Parameter"), f: r => `<b>${esc(r.p)}</b>${r.log ? ' <span class="dim">log</span>' : ""}` }, { k: "fam", l: "Family" }, { k: "unit", l: T("Unit") }, { k: "spec", l: "Spec" },
+    { k: "cpk", l: T("Cpk<br>worst"), n: 1, f: r => fmt(r.cpk, 3), cls: r => r.cpk === null || r.cpk === undefined ? "dim" : r.cpk < 1 ? "hot" : r.cpk < 1.33 ? "warm" : "" },
+    { k: "mg", l: T("Worst reading<br>to limit"), n: 1, f: r => r.mg === null || r.mg === undefined ? "–" : r.mg.toFixed(1) + " %", cls: r => r.mg !== null && r.mg !== undefined && r.mg < 5 ? "warm" : "" },
+    { k: "nfail", l: T("Out of<br>spec"), n: 1, cls: r => r.nfail ? "hot" : "dim" }]
     .concat(DS.flatMap(ds => [
-      { k: "m_" + ds, l: esc(nm(ds)) + "<br>中位數", n: 1, f: r => fmt(r["m_" + ds]) },
+      { k: "m_" + ds, l: T("{0}<br>median", esc(nm(ds))), n: 1, f: r => fmt(r["m_" + ds]) },
       { k: "s_" + ds, l: "robust σ", n: 1, f: r => fmt(r["s_" + ds]), t: "1.4826 × MAD" },
       { k: "f_" + ds, l: "|z|>" + ZF, n: 1, cls: r => r["f_" + ds] ? "hot" : "dim" }]))
     .concat(others.length ? [
-      { k: "dpct", l: "Δ 中位數<br>" + esc(nm(others[0])) + " vs 基準", n: 1, f: r => pct(r.dpct) },
+      { k: "dpct", l: T("Δ median<br>{0} vs reference", esc(nm(others[0]))), n: 1, f: r => pct(r.dpct) },
       { k: "d", l: "Cohen d", n: 1, f: r => fmt(r.d, 2), cls: r => Math.abs(r.d || 0) >= R.thresholds.d_effect ? "warm" : "" },
       { k: "q", l: "q (FDR)", n: 1, f: r => r.q === null || r.q === undefined ? "–" : r.q.toExponential(1) },
-      { k: "sig", l: "偏移", f: r => r.sig ? tpill("major", "顯著") : "", s: r => r.sig ? 1 : 0 },
-      { k: "sdr", l: "σ 比", n: 1, f: r => fmt(r.sdr, 2), t: "σ(其他)/σ(基準)，已排除極端值" }] : [])
-    .concat([{ k: "rho", l: "|ρ| 測試順序", n: 1, f: r => fmt(r.rho, 2), cls: r => r.rho >= .6 ? "warm" : "" },
-      { k: "nv", l: "I-chart 規則", n: 1 }, { k: "tc", l: "ρ TEST_TEMP", n: 1, f: r => fmt(r.tc, 2) }, { k: "res", l: "解析度", n: 1, f: r => fmt(r.res) }]);
-  el.innerHTML = `<div class="stack"><div><div class="eyebrow">所有參數</div><h2>參數總表</h2>
-    <p class="lead">點一列可在「分佈・趨勢」開啟；點欄位標題排序。中位數與 robust σ 不受漏電離群影響；各資料群的平均、σ、P 值與 Cpk 在「分佈・趨勢」與 Excel。</p></div>
-    <div class="row"><input type="search" id="pf" placeholder="篩選，例如 IL 或 CH3" aria-label="篩選參數" style="width:220px">
-      <select id="pfam" aria-label="Family"><option value="">全部 family</option>${[...new Set(rows.map(r => r.fam))].map(f => `<option>${esc(f)}</option>`).join("")}</select>
-      <label class="ctl"><input type="checkbox" id="psig"> 只看顯著偏移</label>
-      <label class="ctl"><input type="checkbox" id="pflag"> 只看有極端值</label>
-      <label class="ctl"><input type="checkbox" id="pcpk"> 只看 Cpk &lt; 1.33</label>
-      <button id="pcopy">複製表格（TSV）</button><span id="pmsg" class="dim"></span></div>
+      { k: "sig", l: T("Shift"), f: r => r.sig ? tpill("major", T("significant")) : "", s: r => r.sig ? 1 : 0 },
+      { k: "sdr", l: T("σ ratio"), n: 1, f: r => fmt(r.sdr, 2), t: T("σ(other)/σ(reference), extremes excluded") }] : [])
+    .concat([{ k: "rho", l: T("|ρ| test order"), n: 1, f: r => fmt(r.rho, 2), cls: r => r.rho >= .6 ? "warm" : "" },
+      { k: "nv", l: T("I-chart rules"), n: 1 }, { k: "tc", l: "ρ TEST_TEMP", n: 1, f: r => fmt(r.tc, 2) }, { k: "res", l: T("Resolution"), n: 1, f: r => fmt(r.res) }]);
+  el.innerHTML = `<div class="stack"><div><div class="eyebrow">${T("All parameters")}</div><h2>${T("Parameter table")}</h2>
+    <p class="lead">${T("Click a row to open it in Distribution · Trend; click a header to sort. Median and robust σ are not affected by leakage outliers; per-dataset mean, σ, p-values and Cpk are in Distribution · Trend and in Excel.")}</p></div>
+    <div class="row"><input type="search" id="pf" placeholder="${T("Filter, e.g. IL or CH3")}" aria-label="${T("Filter parameters")}" style="width:220px">
+      <select id="pfam" aria-label="Family"><option value="">${T("All families")}</option>${[...new Set(rows.map(r => r.fam))].map(f => `<option>${esc(f)}</option>`).join("")}</select>
+      <label class="ctl"><input type="checkbox" id="psig"> ${T("Significant shifts only")}</label>
+      <label class="ctl"><input type="checkbox" id="pflag"> ${T("With extremes only")}</label>
+      <label class="ctl"><input type="checkbox" id="pcpk"> ${T("Cpk &lt; 1.33 only")}</label>
+      <button id="pcopy">${T("Copy table (TSV)")}</button><span id="pmsg" class="dim"></span></div>
     <div id="ptab"></div></div>`;
   const draw = () => {
     const q = $("#pf").value.trim().toLowerCase(), fam = $("#pfam").value;
     const rr = rows.filter(r => (!q || r.p.toLowerCase().includes(q)) && (!fam || r.fam === fam) && (!$("#psig").checked || r.sig) && (!$("#pflag").checked || r.nflag > 0) && (!$("#pcpk").checked || (r.cpk !== null && r.cpk !== undefined && r.cpk < 1.33)));
     $("#ptab").innerHTML = table(cols, rr, { tall: true, click: r => openParam(r.p) });
-    $("#pcopy").onclick = () => copyTSV(cols, rr).then(ok => $("#pmsg").textContent = ok ? "已複製 " + rr.length + " 列" : "瀏覽器不允許複製，請手動選取表格");
+    $("#pcopy").onclick = () => copyTSV(cols, rr).then(ok => $("#pmsg").textContent = ok ? T("Copied {0} rows", rr.length) : T("The browser blocked copying; select the table manually"));
   };
   ["pf", "pfam", "psig", "pflag", "pcpk"].forEach(id => $("#" + id).addEventListener("input", draw));
   draw();

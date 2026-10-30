@@ -1,2 +1,2 @@
-"""純數值統計層：輸入 numpy 陣列、輸出數字。不知道 DataFrame 欄位或參數名稱。
+"""Statistics layer: numpy arrays in, numbers out. Knows nothing about DataFrame columns or parameter names.
 """

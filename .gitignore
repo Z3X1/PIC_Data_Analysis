@@ -2,16 +2,16 @@ __pycache__/
 *.pyc
 PIC_Report/
 pic_names.csv
-# 原始測試資料與 TestSpec 不進版控
+# raw test data and TestSpec files are never committed
 *.xls
 *.xlsx
 data/
 
-# 測試 / 範例產物
+# test / example output
 demo_data/
 .pytest_cache/
 
-# ── 私有核心：分析邏輯與知識庫，只留在本機，不推上 GitHub ──
+# ── private core: analysis logic, knowledge base and locale tables stay local, never pushed ──
 pic_analyzer/analysis/
 pic_analyzer/findings/
 pic_analyzer/domain/root_causes.py
@@ -21,3 +21,4 @@ docs/private/
 pic_analyzer/report/web/js/core/50_charts_findings.js
 pic_analyzer/report/web/js/views/paircorr.js
 tests/test_end_to_end.py
+pic_analyzer/locale/*.json

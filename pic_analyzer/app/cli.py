@@ -8,11 +8,13 @@ Command line:
   python PIC_Analyzer.py D:\\data\\lotA --spec spec_limits.csv --out D:\\reports
   python PIC_Analyzer.py D:\\data\\lotA --names names.csv     # csv: file,name
   python PIC_Analyzer.py D:\\data\\lotA --ref WAFERLOT-W01 --recursive --no-open
+  python PIC_Analyzer.py D:\\data\\lotA --lang en             # force English output
 """
 from __future__ import annotations
 
 import argparse
 
+from ..i18n import available, set_language
 from .gui import gui
 from .runner import read_names, run
 
@@ -26,7 +28,11 @@ def main():
     ap.add_argument("--ref", help="reference dataset name (default: first)")
     ap.add_argument("--recursive", action="store_true")
     ap.add_argument("--no-open", action="store_true")
+    ap.add_argument("--lang", choices=["en"] + available(),
+                    help="report / message language (default: zh_TW when its locale file exists, else en)")
     a = ap.parse_args()
+    if a.lang:
+        set_language(a.lang)
     if not a.folder:
         try:
             gui()

@@ -1,4 +1,4 @@
-"""架構守門：上層可以呼叫下層，下層不可以 import 上層。新增模組時這個測試會擋住反向相依。"""
+"""Architecture guard: a layer may import lower layers, never higher ones. Blocks upward dependencies when modules are added."""
 import ast
 import pathlib
 
@@ -6,9 +6,9 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1] / "pic_analyzer"
 
-# 數字越大越上層
+# higher number = higher layer
 LAYER = {
-    "config": 0, "jsonsafe": 0, "domain": 0, "__init__": 0,
+    "config": 0, "jsonsafe": 0, "i18n": 0, "domain": 0, "__init__": 0,
     "ingest": 1, "stats": 1,
     "analysis": 2,
     "findings": 3,
@@ -53,7 +53,7 @@ def test_every_package_is_mapped():
 
 
 def test_findings_rules_registered_in_order():
-    pytest.importorskip("pic_analyzer.findings", reason="私有分析核心未安裝（公開版）")
+    pytest.importorskip("pic_analyzer.findings", reason="private analysis core not installed (public build)")
     from pic_analyzer.findings import RULES
     files = sorted(p.stem for p in (ROOT / "findings").glob("r[0-9][0-9]_*.py"))
     assert [r.__module__.split(".")[-1] for r in RULES] == files

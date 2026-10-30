@@ -1,4 +1,11 @@
 /* ============================================================ basics */
+/* T(): every UI string in the source is English.  I18N (injected by report/html.py from the
+   locale file, possibly empty) maps an English string to its translation; {0}, {1} … are
+   positional placeholders.  A string missing from I18N is shown in English. */
+const T = (s, ...a) => {
+  const o = (typeof I18N === "object" && I18N && Object.prototype.hasOwnProperty.call(I18N, s)) ? I18N[s] : s;
+  return a.length ? o.replace(/\{(\d+)\}/g, (_, i) => a[+i]) : o;
+};
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const D = R.data, N = D._dataset.length, P = R.params, PI = R.pinfo;
@@ -41,5 +48,5 @@ function zOf(p) { // robust z inside each dataset, log10 for log parameters (sam
 }
 const ZF = R.thresholds.z_flag, ZW = R.thresholds.z_watch;
 const unit = p => (PI[p] && PI[p].unit) ? PI[p].unit : "";
-const dieLabel = i => `${nm(D._dataset[i])} · die ${D._die[i]} · 第 ${D._seq[i] + 1} 顆` + (D._x[i] !== null ? ` · (${D._x[i]},${D._y[i]})${D._dupxy && D._dupxy[i] ? " ⚠座標重複" : ""}` : "");
+const dieLabel = i => `${nm(D._dataset[i])} · die ${D._die[i]} · ${T("test #{0}", D._seq[i] + 1)}` + (D._x[i] !== null ? ` · (${D._x[i]},${D._y[i]})${D._dupxy && D._dupxy[i] ? " ⚠" + T("duplicate coordinate") : ""}` : "");
 

@@ -15,7 +15,7 @@ const CFG = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ["la
 function plot(el, traces, layout) {
   if (typeof el === "string") el = document.getElementById(el);
   if (!el) return;
-  if (!window.Plotly) { el.innerHTML = '<div class="note warn">Plotly 載入失敗（離線？）。請把 plotly.min.js 放在 assets 資料夾後重新產生報告。</div>'; return; }
+  if (!window.Plotly) { el.innerHTML = '<div class="note warn">' + T("Plotly failed to load (offline?). Put plotly.min.js in the assets folder and rebuild the report.") + '</div>'; return; }
   Plotly.react(el, traces, layout, CFG);
 }
 function specShapes(p, axis = "y") {

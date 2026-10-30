@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""PIC Analyzer 啟動檔。雙擊或 `python PIC_Analyzer.py` 開視窗；加資料夾路徑則用命令列模式。
-參數說明：python PIC_Analyzer.py --help
+"""PIC Analyzer launcher. Double-click or run `python PIC_Analyzer.py` for the window; pass a folder for command-line mode.
+Options: python PIC_Analyzer.py --help
 """
 import os
 import sys

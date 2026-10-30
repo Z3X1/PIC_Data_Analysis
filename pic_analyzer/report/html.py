@@ -1,7 +1,7 @@
-"""互動 HTML 報告。
+"""Interactive HTML report.
 
-load_template()  把 web/ 下的 page.html、style.css、js/*.js 組成單一模板（JS 依 JS_FILES 順序串接）
-build_html()     模板 + 分析結果 JSON + plotly（離線內嵌或 CDN）→ 單一 HTML 檔
+load_template()  joins web/page.html, style.css and js/*.js into one template (JS in JS_FILES order)
+build_html()     template + result JSON + message table + plotly (inline or CDN) → one HTML file
 """
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ import json
 import os
 
 from .. import __version__
+from ..i18n import html_lang, language, t
+from ..i18n import table as i18n_table
 try:
     from ..domain.root_causes import RECOMMENDED_ACTIONS_GENERIC  # private knowledge base
 except ImportError:  # public build
@@ -21,28 +23,28 @@ WEB = os.path.join(HERE, "web")
 ASSETS = os.path.join(os.path.dirname(os.path.dirname(HERE)), "assets")
 PLOTLY_CDN = "https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.2/plotly.min.js"
 
-# 前端程式依此順序串接成一個 <script>（後面的檔案可以用前面定義的函式）
+# Front-end sources, concatenated in this order into one <script> (later files may use earlier ones)
 JS_FILES = [
-    "core/10_basics.js",            # 資料存取、格式化、robust z（與 Python 同規則）
-    "core/20_plotly.js",            # layout、plot()、spec 線
-    "core/30_charts.js",            # box / CDF / trend / channel / leak / scatter / wafer map / 相關熱圖
-    "core/40_tables.js",            # 表格、複製 TSV
-    "core/50_charts_findings.js",   # Cpk / heater / radial / R² 配對圖
-    "core/60_router.js",            # 分頁清單、路由、共用 pill
-    "views/overview.js",            # 總覽 + finding 圖
+    "core/10_basics.js",            # data access, formatting, T() translation, robust z (same rule as Python)
+    "core/20_plotly.js",            # shared layout, plot(), spec lines
+    "core/30_charts.js",            # box / CDF / trend / channel / leak / scatter / wafer map / correlation heat map
+    "core/40_tables.js",            # tables, copy as TSV
+    "core/50_charts_findings.js",   # [private] finding-specific charts
+    "core/60_router.js",            # tab list, routing, shared pills
+    "views/overview.js",            # overview + finding charts
     "views/datasets.js",
     "views/params.js",
     "views/explorer.js",
     "views/correlation.js",
-    "views/paircorr.js",
+    "views/paircorr.js",            # [private]
     "views/wafermap.js",
     "views/sweep.js",
     "views/anomalies.js",
     "views/dies.js",
     "views/rootcause.js",
     "views/msa.js",
-    "views/method.js",
-    "core/90_boot.js",              # 啟動
+    "views/method.js",              # [private]
+    "core/90_boot.js",              # start-up
 ]
 
 
@@ -51,8 +53,8 @@ def _read(rel):
         return fh.read()
 
 
-# 私有的前端檔（方法說明）不在公開 repo；缺少時用這段替代
-_STUB = '<div class="panel"><p class="dim">此區塊屬於私有模組，未包含在公開版本。</p></div>'
+# Private front-end files are not in the public repository; these stand-ins keep the page working without them.
+_STUB = '<div class="panel"><p class="dim">${T("This section belongs to the private module and is not included in the public version.")}</p></div>'
 PRIVATE_JS = {
     "core/50_charts_findings.js": "function chartCpk(el) { el.innerHTML = `%s`; }\n"
                                   "function chartHeater(el) { el.innerHTML = `%s`; }\n"
@@ -83,7 +85,8 @@ def _meta(R, sets, folder, sweep=None):
         generated=_dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
         folder=folder,
         key=key,
-        title_sub=(", ".join(lots) + " · " if lots else "") + f"{len(wafers) or len(sets)} 片 wafer",
+        title_sub=(", ".join(lots) + " · " if lots else "") + t("{n} wafers", n=len(wafers) or len(sets)),
+        lang=language(),
         sweep=sweep,
         target_wl=(sweep or {}).get("target", 1310),
         files=[dict(f=os.path.basename(d.path), ds=d.name, n=len(d.df), np=len(d.params), notes="; ".join(d.notes)) for d in sets],
@@ -98,6 +101,7 @@ def build_html(R, sets, folder, standalone=True, inline_plotly=True, sweep=None)
     meta = _meta(R, sets, folder, sweep)
     data_js = json.dumps(R, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     meta_js = json.dumps(meta, ensure_ascii=False).replace("</", "<\\/")
+    i18n_js = json.dumps(i18n_table("web"), ensure_ascii=False).replace("</", "<\\/")
     plotly_path = os.path.join(ASSETS, "plotly.min.js")
     if inline_plotly and os.path.exists(plotly_path):
         with open(plotly_path, encoding="utf-8") as fh:
@@ -106,9 +110,10 @@ def build_html(R, sets, folder, standalone=True, inline_plotly=True, sweep=None)
         plotly_tag = f'<script src="{PLOTLY_CDN}"></script>'
     html = (tpl.replace("<!--__PLOTLY__-->", plotly_tag)
                .replace("/*__DATA__*/null", data_js)
-               .replace("/*__META__*/null", meta_js))
+               .replace("/*__META__*/null", meta_js)
+               .replace("/*__I18N__*/{}", i18n_js))
     if standalone:
-        html = ('<!doctype html>\n<html lang="zh-Hant">\n<head>\n<meta charset="utf-8">\n'
+        html = (f'<!doctype html>\n<html lang="{html_lang()}">\n<head>\n<meta charset="utf-8">\n'
                 '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
                 + html.replace("<style>", "<style>\n:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}", 1)
                 .replace("</style>", "</style>\n</head>\n<body>", 1)

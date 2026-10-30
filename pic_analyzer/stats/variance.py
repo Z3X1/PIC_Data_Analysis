@@ -1,6 +1,6 @@
-"""變異分解。
+"""Variance decomposition.
 
-icc_die  ICC(1)：die × 通道矩陣中，die 之間的變異佔總變異的比例
+icc_die  ICC(1): share of the total variance of a die × channel matrix that lies between dies
 """
 from __future__ import annotations
 

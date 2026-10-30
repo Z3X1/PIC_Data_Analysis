@@ -1,15 +1,17 @@
-"""參數名稱解析與各參數家族的物理說明。
+"""Parameter-name parsing and per-family information.
 
-`parse_param` 把欄位名稱拆成結構化欄位：
+`parse_param` splits a column name into structured fields:
   '1stPDIdark_CH4' -> family PDIdark, stage 1st, channel 4
   'IL_O24O17_CH3'  -> family IL, in O24, out O17, channel 3
   'Heater5'        -> family Heater, channel 5
   'MZMIph_O21'     -> family MZMIph, port O21
-單位以 TestSpec（PROGRAM_SPEC.Ver3）為準；spec 檔載入時會覆寫這裡的預設。
+Units from the TestSpec override the defaults when a spec file is loaded.
 """
 from __future__ import annotations
 
 import re
+
+from ..i18n import t
 
 
 _PATTERNS = [
@@ -35,8 +37,8 @@ def parse_param(name: str) -> dict:
     return {"name": n, "family": n, "stage": "", "ch": None, "port": "", "out": "", "group": n}
 
 
-# 各家族的物理說明 / 單位 / 方向屬於私有知識庫（domain/families.py，不在公開 repo）。
-# 沒有私有模組時 FAMILY 為空：命名解析照常運作，報告只是不顯示物理說明。
+# Physics notes / units / direction per family live in the private knowledge base (domain/families.py).
+# Without it FAMILY is empty: name parsing still works, the report simply shows no physics notes.
 try:
     from .families import FAMILY
 except ImportError:  # public build
@@ -60,5 +62,5 @@ def family_key(fam: str) -> str:
 def info(param: str) -> dict:
     p = parse_param(param)
     k = family_key(p["family"])
-    base = FAMILY.get(k, dict(title=param, unit="", direction="target", block="其他", physics=""))
+    base = FAMILY.get(k, dict(title=param, unit="", direction="target", block=t("Other"), physics=""))
     return {**p, "fkey": k, **base}

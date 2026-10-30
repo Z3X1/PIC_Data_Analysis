@@ -1,9 +1,9 @@
-"""穩健統計：不受少數離群值影響的中心 / 尺度估計。
+"""Robust statistics: centre / scale estimates that a few outliers cannot move.
 
-robust_sigma   1.4826 × MAD（MAD = 0 時退回 IQR/1.349，再退回 SD）
-robust_z       (x − median) / robust_sigma，log 參數在 log10 尺度
-resolution     記錄解析度 = 相鄰不同數值的最小間距
-is_log_param   是否以 log-normal 處理（暗電流家族，或高度右偏且 log 後對稱）
+robust_sigma   1.4826 × MAD (falls back to IQR/1.349, then SD, when MAD = 0)
+robust_z       (x − median) / robust_sigma, in log10 space for log parameters
+resolution     recorded resolution = smallest gap between distinct values
+is_log_param   treat as log-normal? (dark-current families, or strongly right-skewed and symmetric after log)
 """
 from __future__ import annotations
 

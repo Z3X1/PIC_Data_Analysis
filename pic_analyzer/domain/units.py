@@ -1,4 +1,4 @@
-"""單位換算。
+"""Unit conversions.
 """
 from __future__ import annotations
 

@@ -1,2 +1,3 @@
-"""領域知識層：矽光子 KGD 的參數命名、物理意義、單位、root-cause 假說庫。不含任何計算。
+"""Domain layer: silicon-photonics KGD parameter naming and units. No calculations.
+(Parameter physics notes and the root-cause library are private modules.)
 """

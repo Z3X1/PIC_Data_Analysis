@@ -1,7 +1,7 @@
-"""把 numpy / pandas 數值轉成可以寫進 JSON 的 Python 值。
+"""Turn numpy / pandas values into Python values that JSON can hold.
 
-jnum(x, nd)     單一數值 → 四捨五入的 float，NaN / inf → None
-to_jsonable(o)  遞迴處理 dict / list / numpy 型別
+jnum(x, nd)     one number → rounded float; NaN / inf → None
+to_jsonable(o)  recursive over dict / list / numpy types
 """
 from __future__ import annotations
 

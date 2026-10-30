@@ -1,4 +1,4 @@
-"""掃描檔讀取：IL 對波長（spectrum）與光功率線性度（power）的曲線。指標計算在分析核心。
+"""Sweep-file reading: IL-vs-wavelength (spectrum) and optical-power (power) curves. Metrics are computed by the analysis core.
 
 Sweep data: IL vs wavelength (spectrum) and optical-power linearity.
 

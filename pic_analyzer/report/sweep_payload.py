@@ -1,4 +1,4 @@
-"""掃描曲線 → 報告用資料（降取樣 + 摘要）。
+"""Sweep curves → report payload (down-sampling + summary).
 """
 from __future__ import annotations
 

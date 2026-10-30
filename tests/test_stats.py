@@ -1,4 +1,4 @@
-"""stats 層的單元測試：已知答案的小例子。"""
+"""Unit tests for the stats layer: small examples with known answers."""
 import numpy as np
 
 from pic_analyzer.stats.capability import cpk_short_term, describe

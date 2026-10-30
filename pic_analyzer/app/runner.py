@@ -1,10 +1,10 @@
-"""一次完整分析：資料夾 → 讀檔 → spec → 掃描 → 分析 → HTML + Excel。
+"""One complete analysis: folder → files → spec → sweeps → analysis → HTML + Excel.
 
-run() 是唯一需要看的函式；每一行對應一層：
-    ingest.datasets / ingest.specs / ingest.sweeps   讀取
-    analysis.sweep_metrics                          掃描指標（私有核心）
-    engine.analyse                                  分析 + findings（私有核心）
-    report.html / report.excel                      輸出
+run() is the only function to read; each step maps to one layer:
+    ingest.datasets / ingest.specs / ingest.sweeps   reading
+    analysis.sweep_metrics                          sweep metrics (private core)
+    engine.analyse                                  analysis + findings (private core)
+    report.html / report.excel                      output
 """
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ import pandas as pd
 from .. import engine
 from ..ingest import datasets, sweeps
 from ..ingest import specs as specs_mod
+from ..i18n import t
 from ..report import excel, html, sweep_payload
 
 NAMES_FILE = "pic_names.csv"  # remembered dataset names, saved in the data folder
@@ -39,15 +40,15 @@ def save_names(folder, names):
 
 def run(folder, files=None, names=None, spec=None, out=None, ref=None, recursive=False, open_browser=True, log=print):
     if not engine.core_available():
-        raise SystemExit("分析核心（pic_analyzer/analysis、findings、domain 知識庫）未安裝：這是公開版外殼，核心模組為私有。")
-    log(f"掃描資料夾 {folder} …")
+        raise SystemExit(t("The analysis core (pic_analyzer/analysis, findings, domain knowledge base) is not installed: this is the public shell and the core modules are private."))
+    log(t("Scanning folder {folder} …", folder=folder))
     sets, errors = datasets.load_folder(folder, recursive=recursive, names=names, files=files)
     for f, e in errors:
-        log(f"  略過 {f}：{e}")
+        log(t("  skipped {file}: {error}", file=f, error=e))
     if not sets:
-        raise SystemExit("找不到可讀的 Excel/CSV/XML 測試資料。")
+        raise SystemExit(t("No readable Excel/CSV/XML test data found."))
     for d in sets:
-        log(f"  {d.name:<22} {len(d.df):>5} 列  {len(d.params):>4} 參數  ← {os.path.basename(d.path)}")
+        log(t("  {name:<22} {rows:>5} rows  {params:>4} parameters  ← {file}", name=d.name, rows=len(d.df), params=len(d.params), file=os.path.basename(d.path)))
     df, params, specs = datasets.combine(sets)
     # spec: explicit file > program TestSpec in the folder > spec_limits.csv in the folder
     spec_info = {}
@@ -58,7 +59,7 @@ def run(folder, files=None, names=None, spec=None, out=None, ref=None, recursive
         specs.update(res)
         if not spec_info or si.get("conditions"):
             spec_info = si
-        log(f"  spec：{os.path.basename(sp)} → 對應 {len(res)} / {len(params)} 個參數")
+        log(t("  spec: {file} → {mapped} / {total} parameters mapped", file=os.path.basename(sp), mapped=len(res), total=len(params)))
     target = 1310.0
     for f_ in spec_info.get("flow", []):
         try:
@@ -72,8 +73,8 @@ def run(folder, files=None, names=None, spec=None, out=None, ref=None, recursive
     from ..analysis import sweep_metrics  # private core
     sw = sweep_metrics.evaluate(sweeps.read_curves(folder, recursive=recursive, dataset_name=name_by_file), target=target)
     if sw["files"]:
-        log(f"  掃描檔：{len(sw['files'])} 個（{len(sw['spectra'])} 條頻譜、{len(sw['power'])} 條功率曲線）")
-    log("分析中 …")
+        log(t("  sweep files: {files} ({spectra} spectra, {power} power curves)", files=len(sw["files"]), spectra=len(sw["spectra"]), power=len(sw["power"])))
+    log(t("Analysing …"))
     R = engine.analyse(df, params, specs, ref_group=ref, spec_info=spec_info)
     swr = sweep_payload.to_report(sw) if sw["files"] else None
     out = out or os.path.join(folder, "PIC_Report")
@@ -86,9 +87,9 @@ def run(folder, files=None, names=None, spec=None, out=None, ref=None, recursive
         fh.write(html.build_html(R, sets, folder, standalone=True, inline_plotly=True, sweep=swr))
     excel.write_excel(R, xlsx_path, sweep=sw if sw["files"] else None)
     sev = {s: sum(f["severity"] == s for f in R["findings"]) for s in ("critical", "major", "minor", "info")}
-    log(f"Findings：嚴重 {sev['critical']}、重要 {sev['major']}、次要 {sev['minor']}、資訊 {sev['info']}")
-    log(f"報告：{html_path}")
-    log(f"Excel：{xlsx_path}")
+    log(t("Findings: critical {critical}, major {major}, minor {minor}, info {info}", **sev))
+    log(t("Report: {path}", path=html_path))
+    log(t("Excel: {path}", path=xlsx_path))
     if open_browser:
         webbrowser.open("file://" + os.path.abspath(html_path))
     return html_path, xlsx_path, R

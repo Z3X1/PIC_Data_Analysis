@@ -1,16 +1,19 @@
-"""分析引擎入口：整個分析只有三步。
+"""Analysis entry point: the whole analysis is three steps.
 
-    ctx      = analysis.pipeline.compute(...)   # 統計、比較、結構、空間、MSA …
-    findings = findings.build_findings(ctx)     # 規則 → 結論 + root-cause 假說
+    ctx      = analysis.pipeline.compute(...)   # statistics, comparison, structure, spatial, MSA …
+    findings = findings.build_findings(ctx)     # rules → conclusions + root-cause hypotheses
     result   = analysis.pipeline.export(ctx, findings)
 
-result 是一個可序列化的 dict，交給 report.html / report.excel。
+`result` is a JSON-serialisable dict handed to report.html / report.excel.
+analysis/ and findings/ are the private core and are not part of the public repository.
 """
 from __future__ import annotations
 
 import warnings
 
-try:  # analysis/ 與 findings/ 是私有核心，不在公開 repo
+from .i18n import t
+
+try:  # private core
     from .analysis import pipeline
     from .findings import build_findings
 except ImportError as _e:  # public build
@@ -21,12 +24,13 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 
 def core_available() -> bool:
+    """True when the private analysis core is installed."""
     return pipeline is not None
 
 
 def analyse(df, params, specs, group_col="_dataset", ref_group=None, spec_info=None):
     if pipeline is None:
-        raise RuntimeError("分析核心（pic_analyzer/analysis、pic_analyzer/findings）未安裝：這是公開版外殼，"
-                           "核心模組為私有，請向作者取得。") from _MISSING
+        raise RuntimeError(t("The analysis core (pic_analyzer/analysis, pic_analyzer/findings) is not installed: "
+                             "this is the public shell; the core modules are private — ask the author.")) from _MISSING
     ctx = pipeline.compute(df, params, specs, group_col=group_col, ref_group=ref_group, spec_info=spec_info)
     return pipeline.export(ctx, build_findings(ctx))

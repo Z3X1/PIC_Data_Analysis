@@ -1,23 +1,27 @@
-# 03 怎麼擴充
+# 03 Extending
 
-> 標示 [私有] 的位置在私有核心內，公開版沒有這些檔案。
+> Entries marked [private] live in the private core; the public edition does not contain those files.
 
-| 想做的事 | 改哪裡 | 步驟 |
+| Goal | Where | Steps |
 |---|---|---|
-| 調整門檻 | `pic_analyzer/config.py` | 改數字即可，所有步驟與規則共用 |
-| 新的參數家族（例如 RingIph） | `domain/params.py` | 1. `_PATTERNS` 加命名 regex 2. [私有] `domain/families.py` 的 `FAMILY` 加 title / unit / direction / physics 3. 若為 log-normal，加到 `config.LOG_FAMILIES` |
-| 新的 root-cause 假說 [私有] | `domain/root_causes.py` | `ROOT_CAUSES["新 key"] = [(假說, 為什麼, 怎麼驗證), …]`，依可能性排序 |
-| 新的判斷規則 [私有] | `findings/` | 1. 複製一個 `rNN_*.py`，改檔名編號 2. 修改 docstring（觸發 / 嚴重度）和 `rule(ctx, add)` 3. 加到 `findings/__init__.py` 的 `RULES` 4. 更新私有文件 |
-| 新的分析步驟 [私有] | `analysis/` | 1. 新檔案，一個純函式，輸入 df 和參數資訊，輸出 dict 2. 在 `pipeline.compute` 呼叫並放進 ctx 3. 要出現在報告上就放進 `pipeline.export` 4. 有新的統計方法就放 `stats/`，並寫單元測試 |
-| 新的 TestSpec 格式 | `ingest/specs.py` | 寫 `is_xxx_spec` 和 `read_xxx_spec`，回傳與 `read_spec` 相同的 dict，再在 `read_spec` 分派 |
-| 新的資料檔格式 | `ingest/datasets.py` | 在 `load_file` 依副檔名分派，回傳 raw 表（第一列為標題） |
-| 報告新分頁 | `report/web/` | 1. `page.html` 加 `<section class="view" id="v-xxx">` 2. `js/core/60_router.js` 的 `VIEWS` 加一筆 3. 新增 `js/views/xxx.js`，寫 `RENDER.xxx = () => {…}` 4. 加到 `report/html.py` 的 `JS_FILES` |
-| 新的圖 | `report/web/js/core/30_charts.js` 或 `50_charts_findings.js` | `chartXxx(el, …)` 內呼叫 `plot(el, traces, baseLayout({...}))`；要用在 finding 上，就在 `drawFindingChart` 加一個 `chart.type` |
-| Excel 新工作表 | `report/excel.py` | 在 `write_excel` 用 `put(df, "名稱")` |
+| Tune a threshold | `pic_analyzer/config.py` | Change the number. Every step and rule reads it from there. |
+| New parameter family (e.g. RingIph) | `domain/params.py` | 1. Add a naming regex to `_PATTERNS`. 2. [private] Add title / unit / direction / physics to `FAMILY` in `domain/families.py`. 3. If it is log-normal, add it to `config.LOG_FAMILIES`. |
+| New root-cause hypothesis [private] | `domain/root_causes.py` | `ROOT_CAUSES["new key"] = [(hypothesis, why, how to confirm), …]`, most likely first. |
+| New judgement rule [private] | `findings/` | 1. Copy an `rNN_*.py` and renumber it. 2. Edit its docstring (trigger / severity) and `rule(ctx, add)`. 3. Add it to `RULES` in `findings/__init__.py`. 4. Update the private documents. |
+| New analysis step [private] | `analysis/` | 1. Write a new file with one pure function: df and parameter info in, dict out. 2. Call it in `pipeline.compute` and put the result into ctx. 3. To show it in the report, add it to `pipeline.export`. 4. Put any new statistical method in `stats/`, with a unit test. |
+| New TestSpec format | `ingest/specs.py` | Write `is_xxx_spec` and `read_xxx_spec` returning the same dict as `read_spec`, then dispatch to them from `read_spec`. |
+| New data-file format | `ingest/datasets.py` | Dispatch on the extension in `load_file` and return a raw table whose first row is the header. |
+| New report tab | `report/web/` | 1. Add `<section class="view" id="v-xxx">` to `page.html`. 2. Add an entry to `VIEWS` in `js/core/60_router.js`. 3. Create `js/views/xxx.js` with `RENDER.xxx = () => {…}`. 4. Add it to `JS_FILES` in `report/html.py`. |
+| New chart | `report/web/js/core/30_charts.js` | `chartXxx(el, …)` calls `plot(el, traces, baseLayout({...}))`. To use it from a finding, add a `chart.type` to `drawFindingChart`. |
+| New Excel sheet | `report/excel.py` | Call `put(df, "Name")` inside `write_excel`. |
+| New UI text | any public file | Write the English text and wrap it: `t("…")` in Python, `T("…")` in JS. Use `{name}` placeholders in Python and `{0}` in JS. |
+| New language | `pic_analyzer/locale/` | Add `<lang>.json` with `py` and `web` tables (see `locale/README.md`), then run with `--lang <lang>`. |
 
-## 驗證
+## Checks
 ```
-python -m pytest            # 單元測試、端到端（合成資料）、架構守門、模板完整性
-python tests/synthetic.py demo_data && python PIC_Analyzer.py demo_data
+python -m pytest            # stats unit tests, architecture guard, template check (+ end-to-end with the private core)
+python tests/synthetic.py demo_data && python PIC_Analyzer.py demo_data --lang en
 ```
-`tests/test_architecture.py` 會擋下「下層 import 上層」，並檢查每條規則都已登錄、順序和檔名編號一致。
+`tests/test_architecture.py` rejects upward imports. `tests/test_public_english.py` checks two things:
+1. Public files contain no CJK text.
+2. When a locale file exists, every key used in the code has a translation.

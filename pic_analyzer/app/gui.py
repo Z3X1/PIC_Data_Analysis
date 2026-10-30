@@ -1,10 +1,11 @@
-"""tkinter 視窗：選資料夾 → 勾選 / 改名資料群 → 選比較基準 → 分析。"""
+"""tkinter window: pick a folder → tick / rename datasets → choose the reference → analyse."""
 from __future__ import annotations
 
 import os
 
 from ..ingest import datasets, sweeps
 from ..ingest import specs as specs_mod
+from ..i18n import t
 from .runner import read_names, run, save_names
 
 
@@ -22,18 +23,18 @@ def gui():
     top.pack(fill="x")
     folder_var, spec_var, ref_var = tk.StringVar(), tk.StringVar(), tk.StringVar()
     rec_var = tk.BooleanVar(value=False)
-    ttk.Label(top, text="資料夾").grid(row=0, column=0, sticky="w")
+    ttk.Label(top, text=t("Folder")).grid(row=0, column=0, sticky="w")
     ttk.Entry(top, textvariable=folder_var, width=80).grid(row=0, column=1, sticky="we", padx=6)
-    ttk.Button(top, text="瀏覽…", command=lambda: pick_folder()).grid(row=0, column=2)
-    ttk.Label(top, text="TestSpec（可留空，自動找資料夾內的 spec）").grid(row=1, column=0, sticky="w")
+    ttk.Button(top, text=t("Browse…"), command=lambda: pick_folder()).grid(row=0, column=2)
+    ttk.Label(top, text=t("TestSpec (optional — a spec in the folder is found automatically)")).grid(row=1, column=0, sticky="w")
     ttk.Entry(top, textvariable=spec_var, width=80).grid(row=1, column=1, sticky="we", padx=6)
-    ttk.Button(top, text="瀏覽…", command=lambda: spec_var.set(filedialog.askopenfilename(filetypes=[("TestSpec / spec table", "*.xls *.xlsx *.csv")]) or spec_var.get())).grid(row=1, column=2)
-    ttk.Checkbutton(top, text="包含子資料夾", variable=rec_var, command=lambda: rescan()).grid(row=2, column=1, sticky="w")
+    ttk.Button(top, text=t("Browse…"), command=lambda: spec_var.set(filedialog.askopenfilename(filetypes=[("TestSpec / spec table", "*.xls *.xlsx *.csv")]) or spec_var.get())).grid(row=1, column=2)
+    ttk.Checkbutton(top, text=t("Include subfolders"), variable=rec_var, command=lambda: rescan()).grid(row=2, column=1, sticky="w")
     top.columnconfigure(1, weight=1)
 
     mid = ttk.Frame(root, padding=(10, 0))
     mid.pack(fill="both", expand=True)
-    ttk.Label(mid, text="資料群 — 點「Use」欄取消勾選、雙擊名稱改名；名稱記在 pic_names.csv。TestSpec 與掃描檔會自動辨識，不列在這裡。").pack(anchor="w")
+    ttk.Label(mid, text=t("Datasets — click the “Use” column to untick, double-click a name to rename; names are kept in pic_names.csv. TestSpec and sweep files are detected automatically and are not listed here.")).pack(anchor="w")
     tv = ttk.Treeview(mid, columns=("use", "name", "file", "rows"), show="headings", height=14)
     for c, w in (("use", 50), ("name", 200), ("file", 480), ("rows", 70)):
         tv.heading(c, text=c.capitalize())
@@ -41,7 +42,7 @@ def gui():
     tv.pack(fill="both", expand=True, pady=4)
     refrow = ttk.Frame(mid)
     refrow.pack(fill="x")
-    ttk.Label(refrow, text="比較基準").pack(side="left")
+    ttk.Label(refrow, text=t("Reference")).pack(side="left")
     ref_cb = ttk.Combobox(refrow, textvariable=ref_var, width=30, state="readonly")
     ref_cb.pack(side="left", padx=6)
 
@@ -49,7 +50,7 @@ def gui():
     logbox.pack(fill="x", padx=10, pady=4)
     bot = ttk.Frame(root, padding=10)
     bot.pack(fill="x")
-    run_btn = ttk.Button(bot, text="分析 → 開啟報告", command=lambda: start())
+    run_btn = ttk.Button(bot, text=t("Analyse → open report"), command=lambda: start())
     run_btn.pack(side="right")
 
     def log(msg):
@@ -84,7 +85,7 @@ def gui():
         ref_cb["values"] = names
         if names:
             ref_var.set(names[0])
-        log(f"{len(st['files'])} 個資料檔：{f}")
+        log(t("{n} data files: {folder}", n=len(st["files"]), folder=f))
 
     def toggle(event):
         iid = tv.identify_row(event.y)
@@ -120,7 +121,7 @@ def gui():
     def start():
         f = folder_var.get()
         if not os.path.isdir(f):
-            messagebox.showerror("PIC Analyzer", "請先選擇資料夾。")
+            messagebox.showerror("PIC Analyzer", t("Choose a folder first."))
             return
         files, names = [], {}
         for iid in tv.get_children():
@@ -129,7 +130,7 @@ def gui():
                 files.append(iid)
                 names[os.path.basename(iid)] = v[1]
         if not files:
-            messagebox.showerror("PIC Analyzer", "沒有勾選任何資料群。")
+            messagebox.showerror("PIC Analyzer", t("No dataset is ticked."))
             return
         save_names(f, names)
         run_btn.state(["disabled"])

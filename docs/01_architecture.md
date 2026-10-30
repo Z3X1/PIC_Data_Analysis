@@ -1,71 +1,75 @@
-# 01 架構：分層與資料流
+# 01 Architecture: layers and data flow
 
-> analysis/、findings/、domain/families.py、domain/root_causes.py 為私有核心，不在公開 repo；以下描述介面，不描述內部邏輯。
+> `analysis/`, `findings/`, `domain/families.py` and `domain/root_causes.py` are the private core and are not in the public repository. This page describes interfaces, not internal logic.
 
-## 一句話
-**資料夾 → 讀檔 → 分析步驟 → 規則 → 報告**。每一層只呼叫比自己低的層，`tests/test_architecture.py` 會自動擋下反向 import。
+## In one line
+**Folder → files → analysis steps → rules → report.** Each layer only calls layers below it, and `tests/test_architecture.py` rejects any upward import.
 
-## 分層
+## Layers
 
-| 層 | 套件 | 職責 | 可以 import |
+| Layer | Package | Responsibility | May import |
 |---|---|---|---|
-| 5 | `app/` | 視窗、命令列、一次完整分析的流程 | 全部 |
-| 4 | `engine.py` | 分析入口：compute → findings → export（呼叫私有核心） | analysis、findings |
-| 4 | `report/` | HTML（`web/` 前端原始碼）、Excel | analysis、domain、jsonsafe |
-| 3 | `findings/` | **[私有]** 規則 → 結論、證據、root-cause 假說 | domain、config |
-| 2 | `analysis/` | **[私有]** 分析步驟 | stats、domain、config、jsonsafe |
-| 1 | `stats/` | 純數值統計，只吃 numpy 陣列 | config |
-| 1 | `ingest/` | 讀測試資料、TestSpec、掃描曲線 | domain |
-| 0 | `domain/` | 參數命名、單位（物理說明與 root-cause 庫為私有） | — |
-| 0 | `config.py` `jsonsafe.py` | 門檻；JSON 安全數值 | — |
+| 5 | `app/` | window, command line, one complete run | everything |
+| 4 | `engine.py` | analysis entry: compute → findings → export (calls the private core) | analysis, findings |
+| 4 | `report/` | HTML (front-end sources in `web/`), Excel | analysis, domain, jsonsafe, i18n |
+| 3 | `findings/` | **[private]** rules → conclusions, evidence, root-cause hypotheses | domain, config |
+| 2 | `analysis/` | **[private]** analysis steps | stats, domain, config, jsonsafe |
+| 1 | `stats/` | pure numeric statistics on numpy arrays | config, i18n |
+| 1 | `ingest/` | test data, TestSpec, sweep curves | domain |
+| 0 | `domain/` | parameter naming and units (physics notes and the root-cause library are private) | i18n |
+| 0 | `config.py` `jsonsafe.py` `i18n.py` | thresholds; JSON-safe values; message translation | — |
 
-設計原則：
-- **知識與計算分開**：物理說明、假說文字都在 `domain/`（私有），改文字不會碰到統計。
-- **計算與判斷分開**：`analysis/` 只算數字，「這算不算問題、多嚴重」全部在 `findings/`。要調整判斷，只改規則檔。
-- **門檻集中**：所有 z / q / d 門檻在 `config.py`。
-- **前端與後端分開**：`report/web/` 是純 HTML/CSS/JS，Python 只負責把 JSON 塞進去。
+Design rules:
+- **Knowledge apart from calculation.** Physics notes and hypothesis texts live in `domain/` (private), so editing text never touches statistics.
+- **Calculation apart from judgement.** `analysis/` only computes numbers. Whether something is a problem, and how severe, is decided entirely in `findings/`. To change a judgement you edit a rule file and nothing else.
+- **Thresholds in one place.** Every z / q / d threshold is in `config.py`.
+- **Front end apart from back end.** `report/web/` is plain HTML / CSS / JS; Python only injects JSON.
+- **English source, translated at run time.** All user-facing strings in the code are English; `i18n.py` and `T()` in the browser look them up in an optional locale file (see `pic_analyzer/locale/README.md`).
 
-## 資料流
+## Data flow
 
 ```mermaid
 flowchart LR
-  subgraph ingest[ingest 讀取]
+  subgraph ingest[ingest: reading]
     A[datasets.load_folder] --> B[datasets.combine]
     S[specs.read_spec] --> SR[specs.resolve_specs]
     W[sweeps.read_curves]
   end
-  subgraph analysis[analysis 分析]
+  subgraph analysis[analysis: private core]
     C[pipeline.compute] --> X[pipeline.export]
     WM[sweep_metrics.evaluate]
   end
   F[findings.build_findings]
-  subgraph report[report 輸出]
+  subgraph report[report: output]
     H[html.build_html]
     E[excel.write_excel]
   end
+  L[(locale table)]
   B --> C
   SR --> C
   C -- ctx --> F -- findings --> X
   X -- result JSON --> H & E
   W --> WM --> H & E
+  L -.-> H
 ```
 
-## 一次分析的呼叫順序（`app/runner.py: run`）
+## Call order of one run (`app/runner.py: run`)
 
-1. `ingest.datasets.load_folder(folder)` — 每個檔案一個 `Dataset`，名稱由 WAFER_ID 自動產生
-2. `ingest.datasets.combine(sets)` — 合併成一張表 + 參數清單
-3. `ingest.specs.find_spec_files` → `read_spec` → `resolve_specs` — TestSpec 規則套到參數
-4. `ingest.sweeps.read_curves` → `analysis.sweep_metrics.evaluate` — 掃描曲線與指標（沒有掃描檔就跳過）
-5. `engine.analyse` = `pipeline.compute` → `findings.build_findings` → `pipeline.export`
-6. `report.html.build_html`、`report.excel.write_excel`
+1. `ingest.datasets.load_folder(folder)` makes one `Dataset` per file and names it from WAFER_ID.
+2. `ingest.datasets.combine(sets)` merges them into one table plus a parameter list.
+3. `ingest.specs.find_spec_files` → `read_spec` → `resolve_specs` applies the TestSpec rules to the parameters.
+4. `ingest.sweeps.read_curves` → `analysis.sweep_metrics.evaluate` builds sweep curves and metrics (skipped when there are no sweep files).
+5. `engine.analyse` runs `pipeline.compute` → `findings.build_findings` → `pipeline.export`.
+6. `report.html.build_html` and `report.excel.write_excel` write the outputs.
 
-## 中間資料
+## Intermediate data
 
-| 名稱 | 誰產生 | 誰使用 | 內容 |
+| Name | Produced by | Used by | Contents |
 |---|---|---|---|
-| `df` | `analysis.prepare` | 所有分析步驟 | 原始欄位 + `_dataset _seq _die _x _y _session _dupxy _mkey …`（見 02） |
-| `ctx` | `pipeline.compute` | `findings` 規則 | 所有步驟的結果 + df、參數資訊 |
-| `result` | `pipeline.export` | `report` | 可序列化 dict，HTML 內的 `const R` 就是它 |
+| `df` | `analysis.prepare` | every analysis step | original columns + `_dataset _seq _die _x _y _session _dupxy _mkey …` (see 02) |
+| `ctx` | `pipeline.compute` | `findings` rules | the results of every step + df and parameter info |
+| `result` | `pipeline.export` | `report` | a JSON-serialisable dict; it is `const R` inside the HTML |
+| `I18N` | `i18n.table("web")` | `T()` in the browser | English → translated UI strings (empty in English) |
 
-## 檔案地圖
-完整的逐檔說明見根目錄 README 的「Repo 地圖」。
+## File map
+For every file, see the repository map in the root README.

@@ -1,81 +1,81 @@
-# 02 資料規格：輸入、內部欄位、輸出
+# 02 Data contract: inputs, internal columns, output
 
-## 1. 資料夾裡的檔案怎麼被分類
+## 1. How the files in a folder are classified
 
-`ingest/datasets.scan_folder` 會掃描 `.xlsx .xlsm .xls .csv .txt .xml`，然後依序判斷每個檔案：
+`ingest/datasets.scan_folder` scans `.xlsx .xlsm .xls .csv .txt .xml` and then classifies each file in this order:
 
-| 判斷 | 函式 | 結果 |
+| Test | Function | Result |
 |---|---|---|
-| 檔名以 `~$`、`PIC_Report`、`PIC_Summary`、`spec_limits`、`pic_names` 開頭 | `scan_folder` | 略過 |
-| 有 `SYMBOL / MIN / MAX` 標題列，或有名為 `SPEC` 的工作表 | `ingest.specs.is_program_spec` | 當作 **TestSpec** |
-| 有波長軸欄位，或有 ≥ 10 個 1200–1700 的數字欄名 | `ingest.sweeps.detect` → spectrum | 當作 **IL 對波長掃描** |
-| 有輸入功率欄位（Pin / P_set …） | `ingest.sweeps.detect` → power | 當作 **光功率線性度掃描** |
-| 其他 | `ingest.datasets.load_file` | 當作 **測試資料**（一個檔案 = 一個資料群） |
+| file name starts with `~$`, `PIC_Report`, `PIC_Summary`, `spec_limits` or `pic_names` | `scan_folder` | skipped |
+| has a `SYMBOL / MIN / MAX` header row, or a sheet named `SPEC` | `ingest.specs.is_program_spec` | **TestSpec** |
+| has a wavelength-axis column, or ≥ 10 numeric column names in 1200–1700 | `ingest.sweeps.detect` → spectrum | **IL-vs-wavelength sweep** |
+| has an input-power column (Pin / P_set …) | `ingest.sweeps.detect` → power | **optical-power linearity sweep** |
+| anything else | `ingest.datasets.load_file` | **test data** (one file = one dataset) |
 
-## 2. 測試資料檔
+## 2. Test-data files
 
-- **標題列自動偵測**（`_detect_header`）：前 25 列中，文字儲存格 > 60 %、且下面 5 列以數字為主的那一列；分數 = 2 × 文字比例 + 下方數字比例，取最高。
-- **檔內 spec 列**（`_split_spec_rows`）：標題列與第一筆資料之間，含 `LSL / USL / Min / Max / Unit / Target …` 標籤的列，讀成該檔的 spec（`SPEC_ROW_KEYS`）。
-- **meta 與參數的區分**（`classify_columns`）：
-  1. 欄名在 `KNOWN_META` → meta
-  2. 檔案有明確 meta 區塊（例如 `… SOFT_DESC, RETEST, <參數>`）時：最後一個已知 meta 欄**之後**的數值欄 → 參數，之前的欄 → meta
-  3. 否則：數值欄且欄名不符合 `META_PATTERN`（ID、LOT、WAFER、DATE、BIN、COORD …）→ 參數，其餘 → meta
-  4. 全空的參數欄丟掉
-- **XML**：支援兩種版面：每個 die 一個元素且量測值是子元素；或 `<Test name value lo hi unit>`（limit 一起讀）。
-- **命名**（`auto_name`）：`WAFER_ID = "LOT123 01"` → `LOT123-W01`；同一片 wafer 的第二個檔 → `-R2`（視為 retest）。使用者改的名稱存在資料夾的 `pic_names.csv`。
+- **Header detection** (`_detect_header`): among the first 25 rows, a row qualifies if more than 60 % of its cells are text and the 5 rows below it are mostly numeric. Each candidate gets the score 2 × text share + numeric share below, and the highest score wins.
+- **Spec rows inside the file** (`_split_spec_rows`): rows between the header and the first data row that carry a label like `LSL / USL / Min / Max / Unit / Target …` are read as that file's spec (`SPEC_ROW_KEYS`).
+- **Meta vs parameter columns** (`classify_columns`):
+  1. a column name in `KNOWN_META` → meta
+  2. when the file has an explicit meta block (e.g. `… SOFT_DESC, RETEST, <parameters>`): numeric columns **after** the last known meta column → parameters, columns before it → meta
+  3. otherwise: a numeric column whose name does not match `META_PATTERN` (ID, LOT, WAFER, DATE, BIN, COORD …) → parameter, everything else → meta
+  4. parameter columns that are entirely empty are dropped
+- **XML**: two layouts are supported. In the first, each die is one element and its measurements are child elements. In the second, measurements are `<Test name value lo hi unit>` elements, and their limits are read too.
+- **Naming** (`auto_name`): `WAFER_ID = "LOT123 01"` → `LOT123-W01`. A second file of the same wafer becomes `-R2` and is treated as a retest. Names changed by the user are stored in `pic_names.csv` in the data folder.
 
-### 參數命名規則（`domain/params.parse_param`）
+### Parameter naming (`domain/params.parse_param`)
 
-| 欄名範例 | family | stage | ch | port |
+| Column name | family | stage | ch | port |
 |---|---|---|---|---|
 | `1stPDIdark_CH4` | PDIdark | 1st | 4 | — |
-| `IL_O24O17_CH3` | IL | — | 3 | O24（輸入）→ O17（輸出） |
+| `IL_O24O17_CH3` | IL | — | 3 | O24 (in) → O17 (out) |
 | `Heater5` | Heater | — | 5 | — |
-| `MZMIph_O21` | MZMIph | — | — | O21（CH1、CH5 的輸入端） |
+| `MZMIph_O21` | MZMIph | — | — | O21 |
 | `MPD ratio_CH2` | MPDratio | — | 2 | — |
 
-新的命名形式：在 `_PATTERNS` 加一條 regex，在 `FAMILY` 加一筆物理說明。
+To support a new naming form, add a regex to `_PATTERNS` (and, in the private core, a family entry).
 
 ## 3. TestSpec
 
-`ingest/specs.read_spec(path)` 回傳：
+`ingest/specs.read_spec(path)` returns:
 
-| key | 內容 |
+| key | contents |
 |---|---|
-| `rules` | `{參數名或 /regex/: {LSL, USL, UNIT}}`，由 `resolve_specs(params, rules)` 套用（regex 先、精確名稱後，所以精確名稱優先） |
-| `conditions` | 測試條件（PD bias、compliance、對位功率、溫度） |
-| `flow` | 光學測試步驟，第一個波長當作掃描指標的「測試波長」（預設 1310 nm） |
-| `paths` | TXPATHn 的 IN / OUT port |
+| `rules` | `{parameter name or /regex/: {LSL, USL, UNIT}}`, applied by `resolve_specs(params, rules)`. Regex rules are applied first and exact names second, so an exact row wins. |
+| `conditions` | test conditions (PD bias, compliance, alignment power, temperature) |
+| `flow` | optical test steps; the first wavelength is the "test wavelength" for sweep metrics (default 1310 nm) |
+| `paths` | IN / OUT ports of each TXPATHn |
 
-簡易 spec 表（`config/spec_limits_template.csv`）欄位：`Parameter, LSL, USL, Unit, Target`。
+A simple spec table (`config/spec_limits_template.csv`) has the columns `Parameter, LSL, USL, Unit, Target`.
 
-## 4. 掃描檔
+## 4. Sweep files
 
-| 版面 | 欄位 |
+| Layout | Columns |
 |---|---|
-| A 長表（頻譜） | `[WAFER_ID] [PART_ID / DIE / X_COORD,Y_COORD] [CH] Wavelength(nm) IL(dB)` |
-| A 長表（功率） | `[…ID…] Pin(mW 或 dBm) Pout(mW 或 dBm) / Iph(uA)` |
-| B 寬表（頻譜） | 每列一個 die × 通道，欄名是波長（1290 … 1330） |
+| A, long table (spectrum) | `[WAFER_ID] [PART_ID / DIE / X_COORD,Y_COORD] [CH] Wavelength(nm) IL(dB)` |
+| A, long table (power) | `[…ID…] Pin(mW or dBm) Pout(mW or dBm) / Iph(uA)` |
+| B, wide table (spectrum) | one row per die × channel; column names are wavelengths (1290 … 1330) |
 
-ID 欄位（`ID_COLS` 或非數值欄）組成每條曲線的名稱。`examples/make_demo_sweep.py` 會產生標示 DEMO 的範例檔。
+The ID columns (`ID_COLS`, or any non-numeric column) make up each curve's name. `examples/make_demo_sweep.py` writes example files marked DEMO.
 
-## 5. 內部欄位（`analysis/prepare.py` 之後的 df）
+## 5. Internal columns (df after preparation)
 
-| 欄位 | 意義 |
+| Column | Meaning |
 |---|---|
-| `_dataset` | 資料群名稱 |
-| `_file` `_row` | 來源檔名、檔內列序 |
-| `_t` `_t_iso` | 測試開始時間（START_DATE / TIMESTAMP / DATE） |
-| `_seq` | 資料群內的測試順序（有時間就依時間排序） |
-| `_die` | PART_ID 結尾的 `數字-數字`（例如 `…-3-4` → `3-4`）；沒有 PART_ID 時用 `_seq` |
-| `_x` `_y` | 原始晶圓座標（X_COORD / DIE_X / X） |
-| `_gap_s` `_session` | 與前一顆的間隔；長時間中斷時 session + 1 |
-| `_dupxy` | 同一資料群內座標重複 |
-| `_mkey` | 跨資料群配對 die 的鍵：座標唯一時為 `x,y`，否則為 `_die` |
-| `_r` | 正規化晶圓半徑 |
+| `_dataset` | dataset name |
+| `_file` `_row` | source file name, row order inside the file |
+| `_t` `_t_iso` | test start time (START_DATE / TIMESTAMP / DATE) |
+| `_seq` | test order inside the dataset (time order when time stamps exist) |
+| `_die` | the trailing `number-number` of PART_ID (e.g. `…-3-4` → `3-4`); `_seq` when there is no PART_ID |
+| `_x` `_y` | original wafer coordinates (X_COORD / DIE_X / X) |
+| `_gap_s` `_session` | gap to the previous die; the session number increases at a long break |
+| `_dupxy` | coordinate shared with another die in the same dataset |
+| `_mkey` | key that matches a die across datasets: `x,y` when coordinates are unique, otherwise `_die` |
+| `_r` | normalised wafer radius |
 
-## 6. 輸出結果（HTML 內的 `const R`）
+## 6. Output (`const R` inside the HTML)
 
-一個可序列化的 dict，主要 key：`groups ref params pinfo table anomalies dies trends structure corr derived spatial heater pair_corr integrity msa dsum findings data specs spec_info thresholds`。
+The output is a JSON-serialisable dict. Its main keys are `groups ref params pinfo table anomalies dies trends structure corr derived spatial heater pair_corr integrity msa dsum findings data specs spec_info thresholds`.
 
-每個 finding：`id severity category title summary evidence[] causes[{rank,h,why,confirm}] actions[] params[] chart`。產生這些內容的分析邏輯屬於私有核心。
+Each finding has the fields `id severity category title summary evidence[] causes[{rank,h,why,confirm}] actions[] params[] chart`. The private core produces their content.

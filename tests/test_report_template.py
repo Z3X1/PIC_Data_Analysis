@@ -1,4 +1,4 @@
-"""前端模板：web/ 下的每個 JS 檔都有被組進去，每個分頁都有 renderer。"""
+"""Front-end template: every JS file under web/ is assembled and every tab has a renderer."""
 import pathlib
 import re
 

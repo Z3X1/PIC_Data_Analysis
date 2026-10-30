@@ -1,7 +1,7 @@
-"""描述統計與製程能力。
+"""Descriptive statistics and process capability.
 
-describe        n / mean / sd / median / robust σ / 分位數 / 極端值數；有 spec 時加 yield、Ppk、最差讀值距 limit
-cpk_short_term  Cpk，σ 用 I-MR 短期估計（mean(MR)/1.128）；log 參數在 log10 尺度，limit 一起轉換
+describe        n / mean / sd / median / robust σ / quantiles / extreme counts; with a spec also yield, Ppk, worst reading to limit
+cpk_short_term  Cpk with the short-term I-MR σ (mean(MR)/1.128); log parameters in log10 space, limits transformed too
 """
 from __future__ import annotations
 

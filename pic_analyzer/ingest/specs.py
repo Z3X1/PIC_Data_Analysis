@@ -1,4 +1,4 @@
-"""TestSpec 讀取：程式 spec 工作簿、簡易 spec 表，以及把規則套到參數上。
+"""TestSpec reading: program spec workbooks, simple spec tables, and applying the rules to parameters.
 
 Test-specification readers.
 

@@ -48,8 +48,8 @@ function chartDist(el, p, mode) {
     }
   });
   const L = baseLayout({ barmode: "overlay" });
-  if (mode === "cdf") { L.xaxis.type = lg ? "log" : "linear"; L.yaxis.title = { text: "累積 %" }; L.shapes = specShapes(p, "x"); }
-  else { L.yaxis.title = { text: "數量" }; }
+  if (mode === "cdf") { L.xaxis.type = lg ? "log" : "linear"; L.yaxis.title = { text: T("Cumulative %") }; L.shapes = specShapes(p, "x"); }
+  else { L.yaxis.title = { text: T("Count") }; }
   L.xaxis.title = { text: (mode !== "cdf" && lg ? "log10 " : "") + yTitle(p) };
   plot(el, tr, L);
 }
@@ -74,7 +74,7 @@ function chartTrend(el, p, opts = {}) {
     }
     // session breaks
     ix.forEach((i, k) => { if (k > 0 && D._session[i] !== D._session[ix[k - 1]]) { shapes.push({ type: "line", x0: off + k + .5, x1: off + k + .5, yref: "paper", y0: 0, y1: 1, line: { color: css("--major"), width: 1.2, dash: "dot" } });
-      ann.push({ x: off + k + .5, yref: "paper", y: 0.99, text: ` 中斷 ${Math.round((D._gap_s[i] || 0) / 60)} 分`, showarrow: false, font: { size: 10, color: css("--major") }, xanchor: "left", yanchor: "top", bgcolor: css("--panel") }); } });
+      ann.push({ x: off + k + .5, yref: "paper", y: 0.99, text: " " + T("break {0} min", Math.round((D._gap_s[i] || 0) / 60)), showarrow: false, font: { size: 10, color: css("--major") }, xanchor: "left", yanchor: "top", bgcolor: css("--panel") }); } });
     if (off > 0) shapes.push({ type: "line", x0: off + .5, x1: off + .5, yref: "paper", y0: 0, y1: 1, line: { color: css("--faint"), width: 1.5 } });
     ann.push({ x: off + 1, yref: "paper", y: -0.001, text: esc(nm(ds)), showarrow: false, xanchor: "left", yanchor: "top", font: { size: 10.5, color: colorOf(ds) }, yshift: -26 });
     if (showTemp) tr.push({ type: "scatter", mode: "lines", x: xs, y: ix.map(i => D.TEST_TEMP[i]), name: "TEST_TEMP " + nm(ds), yaxis: "y2", line: { color: css("--faint"), width: 1, dash: "dot" }, hovertemplate: "%{y:.2f} °C<extra></extra>", showlegend: off === 0 });
@@ -82,7 +82,7 @@ function chartTrend(el, p, opts = {}) {
   });
   const L = baseLayout({ shapes: shapes.concat(specShapes(p)), annotations: ann, margin: { l: 70, r: showTemp ? 60 : 18, t: 34, b: 64 } });
   L.yaxis.type = lg ? "log" : "linear"; L.yaxis.title = { text: yTitle(p) };
-  L.xaxis.title = { text: "測試順序（各資料群依序串接）", standoff: 28 };
+  L.xaxis.title = { text: T("Test order (datasets concatenated)"), standoff: 28 };
   if (showTemp) L.yaxis2 = { overlaying: "y", side: "right", title: { text: "TEST_TEMP [°C]" }, showgrid: false, tickfont: { color: css("--muted") } };
   plot(el, tr, L);
 }
@@ -122,8 +122,8 @@ function chartLeak(el, fam) {
   });
   const allI = pairs.flatMap(([a, b]) => D[b]).filter(v => v !== null);
   const L = baseLayout();
-  L.xaxis.type = "log"; L.xaxis.title = { text: `暗電流（所有 ${fam} 通道）[${unit(pairs[0][1])}]` };
-  L.yaxis.title = { text: `崩潰電壓（同一顆二極體）[${unit(pairs[0][0])}]` };
+  L.xaxis.type = "log"; L.xaxis.title = { text: T("Dark current (all {0} channels) [{1}]", fam, unit(pairs[0][1])) };
+  L.yaxis.title = { text: T("Breakdown voltage (same diode) [{0}]", unit(pairs[0][0])) };
   const zthr = Math.pow(10, Math.log10(median(allI)) + ZF * rsig(allI.map(v => Math.log10(v))));
   L.shapes = [{ type: "line", x0: zthr, x1: zthr, yref: "paper", y0: 0, y1: 1, line: { color: css("--major"), dash: "dot", width: 1.2 } }];
   const su = (R.specs[pairs[0][1]] || {}).USL, sl = (R.specs[pairs[0][0]] || {}).LSL;
@@ -132,7 +132,7 @@ function chartLeak(el, fam) {
     extraAnn.push({ x: Math.log10(su), y: 0.02, yref: "paper", text: `Idark USL ${fmt(su)} `, showarrow: false, xanchor: "right", font: { size: 10.5, color: css("--crit") } }); }
   if (sl !== undefined) { L.shapes.push({ type: "line", xref: "paper", x0: 0, x1: 1, y0: sl, y1: sl, line: { color: css("--crit"), dash: "dash", width: 1.4 } });
     extraAnn.push({ xref: "paper", x: 0.01, y: sl, text: `Vbr LSL ${fmt(sl)} V`, showarrow: false, xanchor: "left", yanchor: "bottom", font: { size: 10.5, color: css("--crit") } }); }
-  L.annotations = extraAnn.concat([{ x: Math.log10(zthr), y: 1, yref: "paper", text: ` 統計離群界線 ≈ ${fmt(zthr)}（robust z ${ZF}）`, showarrow: false, xanchor: "left", font: { size: 10.5, color: css("--major") } }]);
+  L.annotations = extraAnn.concat([{ x: Math.log10(zthr), y: 1, yref: "paper", text: " " + T("statistical outlier limit ≈ {0} (robust z {1})", fmt(zthr), ZF), showarrow: false, xanchor: "left", font: { size: 10.5, color: css("--major") } }]);
   plot(el, tr, L);
 }
 
@@ -154,7 +154,7 @@ function chartScatter(el, px, py, o = {}) {
     DSIDX[ds].forEach(i => {
       const a = D[px][i], b = D[py][i]; if (a === null || b === null) return;
       const out = (zx[i] !== null && Math.abs(zx[i]) > ZF) || (zy[i] !== null && Math.abs(zy[i]) > ZF);
-      x.push(a); y.push(b); t.push(`${dieLabel(i)}${out ? "<br><b>不納入擬合（|z|>" + ZF + "）</b>" : ""}`);
+      x.push(a); y.push(b); t.push(`${dieLabel(i)}${out ? "<br><b>" + T("excluded from fit (|z|>{0})", ZF) + "</b>" : ""}`);
       if (!(o.excl && out)) { fx.push(lx ? Math.log10(a) : a); fy.push(ly ? Math.log10(b) : b); }
     });
     tr.push({ type: "scatter", mode: "markers", x, y, name: nm(ds), legendgroup: ds, marker: { color: colorOf(ds), size: 7, opacity: .8 }, text: t, hovertemplate: "%{text}<br>x=%{x}<br>y=%{y}<extra></extra>" });
@@ -173,7 +173,7 @@ function chartScatter(el, px, py, o = {}) {
   if (o.unity) {
     const v = [...allx, ...ally].map(q => lx ? 10 ** q : q); const lo = Math.min(...v), hi = Math.max(...v);
     L.shapes = [{ type: "line", x0: lo, x1: hi, y0: lo, y1: hi, line: { color: css("--faint"), dash: "dash", width: 1.2 } }];
-    L.annotations = [{ x: lx ? Math.log10(hi) : hi, y: ly ? Math.log10(hi) : hi, text: "y = x（R² = 1 參考線）", showarrow: false, xanchor: "right", yanchor: "bottom", font: { size: 10.5, color: css("--faint") } }];
+    L.annotations = [{ x: lx ? Math.log10(hi) : hi, y: ly ? Math.log10(hi) : hi, text: T("y = x (R² = 1 reference)"), showarrow: false, xanchor: "right", yanchor: "bottom", font: { size: 10.5, color: css("--faint") } }];
   }
   plot(el, tr, L);
   return stats;
@@ -205,11 +205,11 @@ function chartMap(el, p, metric) {
       if (vals) { const v = vals[i]; c.push(v === null ? null : (lg ? Math.log10(v) : v)); }
       else c.push(cnt[key]);
       lw.push(dup ? 2 : 0);
-      t.push(`${dieLabel(i)}${dup ? "<br><b>此座標共有 " + cnt[key] + " 顆 die</b>" : ""}${vals ? `<br>${der ? der.label : p} = ${fmt(raw[i])}${metric === "z" && !der && vals[i] !== null ? " (z " + vals[i].toFixed(1) + ")" : ""}` : ""}`);
+      t.push(`${dieLabel(i)}${dup ? "<br><b>" + T("{0} dies share this coordinate", cnt[key]) + "</b>" : ""}${vals ? `<br>${der ? der.label : p} = ${fmt(raw[i])}${metric === "z" && !der && vals[i] !== null ? " (z " + vals[i].toFixed(1) + ")" : ""}` : ""}`);
     });
     traces.push({ type: "scatter", mode: "markers", x, y, xaxis: "x" + ax, yaxis: "y" + ax, text: t, hoverinfo: "text", showlegend: false,
       marker: { symbol: "square", size: 15, color: c, cmin: vals ? cmin : 1, cmax: vals ? cmax : 2, colorscale: vals ? (metric === "z" && !der ? "RdBu" : "Viridis") : [[0, css("--ok")], [1, css("--crit")]], reversescale: metric === "z" && !der,
-        showscale: k === 0, colorbar: { thickness: 10, len: .8, title: { text: vals ? (metric === "z" && !der ? "robust z" : (lg ? "log10 " : "") + (munit || "")) : "die 數 / 座標", side: "right" }, tickfont: { color: css("--muted") } },
+        showscale: k === 0, colorbar: { thickness: 10, len: .8, title: { text: vals ? (metric === "z" && !der ? "robust z" : (lg ? "log10 " : "") + (munit || "")) : T("dies per coordinate"), side: "right" }, tickfont: { color: css("--muted") } },
         line: { width: lw, color: css("--fg") } } });
     const X = D._x.filter(v => v !== null), Y = D._y.filter(v => v !== null);
     L["xaxis" + ax] = { gridcolor: css("--line2"), zeroline: false, dtick: 1, range: [Math.min(...X) - 1, Math.max(...X) + 1], constrain: "domain", tickfont: { size: 9, color: css("--muted") }, title: { text: "X", font: { size: 10 } } };
@@ -232,6 +232,6 @@ function chartDieZ(el, i) {
   plot(el, [{ type: "bar", x: ord.map(v => v[0]), y: ord.map(v => v[1]), marker: { color: ord.map(v => Math.abs(v[1]) > ZF ? css("--crit") : Math.abs(v[1]) > ZW ? css("--major") : css("--faint")) },
     hovertemplate: "%{x}<br>z = %{y:.2f}<extra></extra>" }],
     baseLayout({ margin: { l: 52, r: 10, t: 16, b: 110 }, shapes: [ZF, -ZF].map(v => ({ type: "line", xref: "paper", x0: 0, x1: 1, y0: v, y1: v, line: { color: css("--crit"), dash: "dash", width: 1 } })),
-      xaxis: { tickangle: -60, tickfont: { size: 9, color: css("--muted") } }, yaxis: { title: { text: "robust z（資料群內）" }, gridcolor: css("--line2"), tickfont: { color: css("--muted") } } }));
+      xaxis: { tickangle: -60, tickfont: { size: 9, color: css("--muted") } }, yaxis: { title: { text: T("robust z (within dataset)") }, gridcolor: css("--line2"), tickfont: { color: css("--muted") } } }));
 }
 

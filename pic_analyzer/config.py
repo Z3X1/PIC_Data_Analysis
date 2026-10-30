@@ -1,6 +1,6 @@
-"""判定門檻（全部集中在這裡調整）。
+"""Decision thresholds — the single place to tune them.
 
-所有分析步驟與 findings 規則都從這個檔案讀門檻，不在其他地方寫死數字。
+Every analysis step and findings rule reads its thresholds from this file; no other module hard-codes them.
 """
 from __future__ import annotations
 

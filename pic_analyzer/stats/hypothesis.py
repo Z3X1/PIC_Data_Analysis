@@ -1,7 +1,7 @@
-"""群組差異檢定。
+"""Group-difference statistics.
 
-bh_fdr   Benjamini-Hochberg FDR 校正（多重比較）
-cohen_d  效果量 (mean_b − mean_a) / pooled SD
+bh_fdr   Benjamini-Hochberg FDR adjustment (multiple comparisons)
+cohen_d  effect size (mean_b − mean_a) / pooled SD
 """
 from __future__ import annotations
 

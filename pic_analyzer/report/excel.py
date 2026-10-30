@@ -1,8 +1,10 @@
-"""Excel 摘要：每個工作表的內容寫在 write_excel() 內，依報告閱讀順序排列。"""
+"""Excel summary: every sheet is written inside write_excel(), in report reading order."""
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+
+from .. import i18n
 
 
 def write_excel(R, path, sweep=None):
@@ -26,7 +28,7 @@ def write_excel(R, path, sweep=None):
         # findings
         rows = []
         for f in R["findings"]:
-            rows.append(dict(ID=f["id"], Severity={"critical": "嚴重", "major": "重要", "minor": "次要", "info": "資訊"}[f["severity"]], Category=f["category"], Title=f["title"], Summary=f["summary"],
+            rows.append(dict(ID=f["id"], Severity={"critical": i18n.t("Critical"), "major": i18n.t("Major"), "minor": i18n.t("Minor"), "info": i18n.t("Info")}[f["severity"]], Category=f["category"], Title=f["title"], Summary=f["summary"],
                              Evidence="\n".join(f["evidence"]),
                              Top_root_cause=(f["causes"][0]["h"] if f["causes"] else ""),
                              Confirm=(f["causes"][0]["confirm"] if f["causes"] else ""),

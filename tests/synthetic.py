@@ -1,8 +1,8 @@
-"""完全合成的測試資料（不含任何真實量測值），格式與 KGD Data Summary 相同。
+"""Fully synthetic test data (no real measurement values) in the KGD Data Summary format.
 
-刻意埋入的訊號：少數 PD 通道漏電、第二片 wafer 的 PDIph 整體 +10 %、heater 的通道梯度。
+Planted signals: a few leaking PD channels, a +10 % PDIph shift on the second wafer, and a heater channel gradient.
 
-python tests/synthetic.py <folder>   產生兩份 .xlsx 與 spec_limits.csv
+python tests/synthetic.py <folder>   writes two .xlsx files and spec_limits.csv
 """
 from __future__ import annotations
 

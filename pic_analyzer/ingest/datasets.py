@@ -1,4 +1,4 @@
-"""測試資料檔讀取：資料夾掃描、Excel / CSV / XML 解析、自動命名、合併。
+"""Test-data reading: folder scan, Excel / CSV / XML parsing, automatic naming, merging.
 
 Folder scanning and file parsing (Excel / CSV / XML) into one tidy table.
 
